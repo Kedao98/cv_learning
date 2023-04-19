@@ -54,10 +54,12 @@ def load_dataset(train_dataset, val_dataset):
 
 
 def load_model_weights(net, model_save_path, mode=''):
+    # load your own pth
     if os.path.exists(model_save_path):
         net.load_state_dict(torch.load(model_save_path, map_location='cpu'))
         print(f'load model {model_save_path} finished')
 
+    # load pre-trained pth
     elif glob(f"{os.path.dirname(model_save_path)}/*.pth"):
         model_save_path = glob(f"{os.path.dirname(model_save_path)}/*.pth")[0]
         weights = torch.load(model_save_path, map_location='cpu')
@@ -106,7 +108,7 @@ def validate_epoch(net, validate_loader):
     return acc_cnt
 
 
-def train(train_dataset, val_dataset):
+def train(net, loss_function, optimizer, train_dataset, val_dataset):
     train_dataset, val_dataset, train_loader, validate_loader = load_dataset(train_dataset, val_dataset)
 
     best_acc = 0.0
@@ -134,4 +136,5 @@ if __name__ == '__main__':
     loss_function = nn.CrossEntropyLoss()
     optimizer = optim.Adam(net_params, lr=1e-5)
 
-    train(train_dataset="dataset/flower_data/train", val_dataset="dataset/flower_data/val")
+    train(net, loss_function, optimizer,
+          train_dataset="dataset/flower_data/train", val_dataset="dataset/flower_data/val")
