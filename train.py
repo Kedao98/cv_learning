@@ -78,7 +78,7 @@ def load_model_weights(net, model_save_path, mode=''):
 
 
 def train_epoch(net, train_loader, loss_function, optimizer, epoch):
-    net.main()
+    net.train()
     train_bar = tqdm(train_loader, file=sys.stdout)
     running_loss = 0.0
     for step, data in enumerate(train_bar):
