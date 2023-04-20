@@ -53,7 +53,7 @@ def load_dataset(train_dataset, val_dataset):
 
 
 def train_epoch(net, train_loader, loss_function, optimizer, epoch):
-    net.train()
+    net.main()
     train_bar = tqdm(train_loader, file=sys.stdout)
     running_loss = 0.0
     for step, data in enumerate(train_bar):

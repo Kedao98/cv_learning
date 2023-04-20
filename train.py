@@ -9,7 +9,6 @@ import torch.nn as nn
 from torchvision import transforms, datasets
 import torch.optim as optim
 
-
 # device info
 DEVICE = torch.device("cuda:1") if torch.cuda.is_available() else torch.device("cpu")
 print(f"using {DEVICE} device.")
@@ -19,10 +18,11 @@ DATA_TRANSFORM = {
         "train": transforms.Compose([transforms.RandomResizedCrop(224),
                                      transforms.RandomHorizontalFlip(),
                                      transforms.ToTensor(),
-                                     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]),
+                                     # [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]  [0.5, 0.5, 0.5], [0.5, 0.5, 0.5]
+                                     transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))]),
         "val": transforms.Compose([transforms.Resize((224, 224)),
                                    transforms.ToTensor(),
-                                   transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+                                   transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
 }
 # train config
 EPOCHS = 30
@@ -78,7 +78,7 @@ def load_model_weights(net, model_save_path, mode=''):
 
 
 def train_epoch(net, train_loader, loss_function, optimizer, epoch):
-    net.train()
+    net.main()
     train_bar = tqdm(train_loader, file=sys.stdout)
     running_loss = 0.0
     for step, data in enumerate(train_bar):
@@ -108,7 +108,7 @@ def validate_epoch(net, validate_loader):
     return acc_cnt
 
 
-def train(net, loss_function, optimizer, train_dataset, val_dataset):
+def main(net, loss_function, optimizer, train_dataset, val_dataset):
     train_dataset, val_dataset, train_loader, validate_loader = load_dataset(train_dataset, val_dataset)
 
     best_acc = 0.0
@@ -133,8 +133,5 @@ if __name__ == '__main__':
     net, model_save_path, _ = model.initialize_model_for_learning()
     net, net_params = load_model_weights(net, model_save_path, mode='freeze')  # freeze
 
-    loss_function = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(net_params, lr=1e-5)
-
-    train(net, loss_function, optimizer,
-          train_dataset="dataset/flower_data/train", val_dataset="dataset/flower_data/val")
+    main(net, loss_function=nn.CrossEntropyLoss(), optimizer=optim.Adam(net_params, lr=1e-5),
+         train_dataset="dataset/flower_data/train", val_dataset="dataset/flower_data/val")
