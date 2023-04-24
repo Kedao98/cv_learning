@@ -119,7 +119,6 @@ class MobilenetV2(nn.Module):
 
     @classmethod
     def initialize_model_for_learning(cls):
-        import os
         model = cls(num_classes=5)
         model_save_dir = os.path.dirname(os.path.abspath(__file__))
         model_save_pth = os.path.join(model_save_dir, 'best.pth')
@@ -128,8 +127,7 @@ class MobilenetV2(nn.Module):
 
     @staticmethod
     def wget_pth():
-        import os
         model_save_dir = os.path.dirname(os.path.abspath(__file__))
 
         url = "https://download.pytorch.org/models/mobilenet_v2-b0353104.pth"
-        os.system(f"wget {url} -O {os.path.join(model_save_dir, 'best.pth')}")
+        os.system(f"wget {url} -O {os.path.join(model_save_dir, os.path.split(url)[-1])}")
