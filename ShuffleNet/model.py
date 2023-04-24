@@ -7,29 +7,31 @@ class InvertedResidual(nn.Module):
         super(InvertedResidual, self).__init__()
 
         self.stride = stride
-
+        branch_features = out_channel // 2
         if stride == 1:
             self.branch1 = nn.Sequential()
 
         elif stride == 2:
             self.branch1 = nn.Sequential(
                 # dw conv
-                nn.Conv2d(in_channel, out_channel, stride=stride, kernel_size=3, groups=in_channel, padding=1, bias=False),
-                nn.BatchNorm2d(out_channel),
+                nn.Conv2d(in_channel, in_channel, stride=stride, kernel_size=3, groups=in_channel, padding=1, bias=False),
+                nn.BatchNorm2d(in_channel),
                 # pw conv
-                nn.Conv2d(out_channel, out_channel, kernel_size=1),
-                nn.BatchNorm2d(out_channel),
+                nn.Conv2d(in_channel, branch_features, kernel_size=1, stride=1, bias=False),
+                nn.BatchNorm2d(branch_features),
                 nn.ReLU(inplace=True)
             )
 
-        branch_features = in_channel // 2
         self.branch2 = nn.Sequential(
             nn.Conv2d(in_channel if stride > 1 else branch_features, branch_features, stride=1, kernel_size=1, bias=False),
             nn.BatchNorm2d(branch_features),
             nn.ReLU(inplace=True),
-            nn.Conv2d(branch_features, branch_features, kernel_size=3, stride=stride, padding=1, bias=False),
+            # dw conv
+            nn.Conv2d(branch_features, branch_features, kernel_size=3, stride=stride, groups=branch_features, padding=1, bias=False),
             nn.BatchNorm2d(branch_features),
-            nn.Conv2d(branch_features, branch_features, kernel_size=1, stride=1, bias=False),
+            # pw conv
+            nn.Conv2d(branch_features, branch_features, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.BatchNorm2d(branch_features),
             nn.ReLU(inplace=True)
         )
 
@@ -38,7 +40,7 @@ class InvertedResidual(nn.Module):
             x1, x2 = x.chunk(2, dim=1)
             out = torch.cat((x1, self.branch2(x2)), dim=1)
         else:
-            out = torch.concat((self.branch1(x), self.branch2(x)), dim=1)
+            out = torch.cat((self.branch1(x), self.branch2(x)), dim=1)
 
         out = self.channel_shuffle(out, 2)
 
@@ -61,3 +63,48 @@ class InvertedResidual(nn.Module):
         return x
 
 
+class ShuffleNetV2(nn.Module):
+    def __init__(self,
+                 stages_repeats: list[int],
+                 stages_out_channels: list[int],
+                 num_classes: int,
+                 ):
+        super(ShuffleNetV2, self).__init__()
+
+        # input RGB image
+        in_channel, out_channel = 3, stages_out_channels[0]
+        self.stage1 = nn.Sequential(
+            nn.Conv2d(in_channel, out_channel, kernel_size=3, padding=1, stride=2, bias=False),
+            nn.BatchNorm2d(out_channel),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, padding=1, stride=2)
+        )
+
+        in_channel = out_channel
+        for i in range(len(stages_repeats)):
+            name, repeats, out_channel = f"stage{i+2}", stages_repeats[i], stages_out_channels[1:][i]
+            seq = [InvertedResidual(in_channel, out_channel, 2)] + \
+                  [InvertedResidual(out_channel, out_channel, 1) for _ in range(1, repeats)]
+            setattr(self, name, nn.Sequential(*seq))
+            in_channel = out_channel
+
+        out_channel = stages_out_channels[-1]
+        self.conv5 = nn.Sequential(
+            nn.Conv2d(in_channel, out_channel, kernel_size=1, stride=1, bias=False),
+            nn.BatchNorm2d(out_channel),
+            nn.ReLU(inplace=True)
+        )
+        self.fc = nn.Linear(out_channel, num_classes)
+
+    def forward(self, x):
+        for i in range(1, 5):
+            x = getattr(self, f"stage{i}")(x)
+        x = self.conv5(x)
+        x = x.mean((2, 3))  # global pool
+        x = self.fc(x)
+        return x
+
+
+if __name__ == '__main__':
+    model = ShuffleNetV2(stages_repeats=[4, 8, 4], stages_out_channels=[24, 48, 96, 192, 1024], num_classes=5)
+    print(model(torch.randn(1, 3, 224, 224)).shape)
