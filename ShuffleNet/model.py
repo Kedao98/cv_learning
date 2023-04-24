@@ -58,7 +58,6 @@ class InvertedResidual(nn.Module):
 
         # flatten
         x = x.view(batch_size, -1, height, width)
-
         return x
 
 
