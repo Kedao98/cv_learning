@@ -5,7 +5,6 @@ import cv2
 import torch
 from torchvision import transforms
 
-
 # device info
 DEVICE = torch.device("cuda:1") if torch.cuda.is_available() else torch.device("cpu")
 print(f"using {DEVICE} device.")
@@ -38,7 +37,8 @@ def predict(image_path):
 
 
 if __name__ == '__main__':
-    from MobileNet.model_v2 import MobilenetV2 as model
+    from ShuffleNet.model import ShuffleNetV2 as model
+
     MODEL, WEIGHTS_PATH, CLASS_DICT_PATH = model.initialize_model_for_learning()
 
     # load model

@@ -64,11 +64,7 @@ class InvertedResidual(nn.Module):
 
 
 class ShuffleNetV2(nn.Module):
-    def __init__(self,
-                 stages_repeats: list[int],
-                 stages_out_channels: list[int],
-                 num_classes: int,
-                 ):
+    def __init__(self, stages_repeats, stages_out_channels, num_classes):
         super(ShuffleNetV2, self).__init__()
 
         # input RGB image
@@ -95,6 +91,22 @@ class ShuffleNetV2(nn.Module):
             nn.ReLU(inplace=True)
         )
         self.fc = nn.Linear(out_channel, num_classes)
+        self._initialize_weights()
+
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+
+            elif isinstance(m, nn.Linear):
+                nn.init.normal_(m.weight, 0, 0.01)
+                nn.init.constant_(m.bias, 0)
+
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.ones_(m.weight)
+                nn.init.zeros_(m.bias)
 
     def forward(self, x):
         for i in range(1, 5):
@@ -103,6 +115,15 @@ class ShuffleNetV2(nn.Module):
         x = x.mean((2, 3))  # global pool
         x = self.fc(x)
         return x
+
+    @classmethod
+    def initialize_model_for_learning(cls):
+        import os
+        model = cls(stages_repeats=[4, 8, 4], stages_out_channels=[24, 48, 96, 192, 1024], num_classes=5)
+        model_save_dir = os.path.dirname(os.path.abspath(__file__))
+        model_save_pth = os.path.join(model_save_dir, 'best.pth')
+        model_dict_json = os.path.join(model_save_dir, 'class_indices.json')
+        return model, model_save_pth, model_dict_json
 
 
 if __name__ == '__main__':
