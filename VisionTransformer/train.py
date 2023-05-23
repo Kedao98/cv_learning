@@ -64,14 +64,22 @@ def load_model_weights(net, model_save_path, mode=''):
     elif glob(f"{os.path.dirname(model_save_path)}/*.pth"):
         model_save_path = glob(f"{os.path.dirname(model_save_path)}/*.pth")[0]
         weights = torch.load(model_save_path, map_location='cpu')
-        weights = {k: v for k, v in weights.items() if net.state_dict()[k].numel() == v.numel()}
+
+        del_keys = ['head.weight', 'head.bias'] if net.has_logits \
+            else ['pre_logits.fc.weight', 'pre_logits.fc.bias', 'head.weight', 'head.bias']
+        for k in del_keys:
+            del weights[k]
 
         net.load_state_dict(weights, strict=False)
         print(f'load model {model_save_path} finished')
 
         if mode == 'freeze':
-            for param in net.features.parameters():
-                param.requires_grad = False
+            for name, para in net.named_parameters():
+                # 除head, pre_logits外，其他权重全部冻结
+                if "head" not in name and "pre_logits" not in name:
+                    para.requires_grad_(False)
+                else:
+                    print("training {}".format(name))
 
     net = net.to(DEVICE)
     params = [p for p in net.parameters() if p.requires_grad]
@@ -129,9 +137,9 @@ def main(net, loss_function, optimizer, train_dataset, val_dataset):
 
 
 if __name__ == '__main__':
-    from ShuffleNet.model import ShuffleNetV2 as model
+    from VisionTransformer import vit_base_patch16_224_in21k as create_model
 
-    net, model_save_path, _ = model.initialize_model_for_learning()
+    net, model_save_path, _ = create_model()
     net, net_params = load_model_weights(net, model_save_path, mode='unfreeze')  # freeze
 
     main(net, loss_function=nn.CrossEntropyLoss(), optimizer=optim.Adam(net_params, lr=1e-5),
