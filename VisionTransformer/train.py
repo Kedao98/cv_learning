@@ -137,7 +137,7 @@ def main(net, loss_function, optimizer, train_dataset, val_dataset):
 
 
 if __name__ == '__main__':
-    from VisionTransformer import vit_base_patch16_224_in21k as create_model
+    from model import vit_base_patch16_224_in21k as create_model
 
     net, model_save_path, _ = create_model()
     net, net_params = load_model_weights(net, model_save_path, mode='unfreeze')  # freeze
