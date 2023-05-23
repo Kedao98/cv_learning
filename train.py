@@ -2,12 +2,12 @@ import json
 import os
 import sys
 from glob import glob
-from tqdm import tqdm
 
 import torch
 import torch.nn as nn
-from torchvision import transforms, datasets
 import torch.optim as optim
+from torchvision import transforms, datasets
+from tqdm import tqdm
 
 # device info
 DEVICE = torch.device("cuda:1") if torch.cuda.is_available() else torch.device("cpu")
@@ -15,15 +15,15 @@ print(f"using {DEVICE} device.")
 
 # dataloader config
 DATA_TRANSFORM = {
-        "train": transforms.Compose([transforms.RandomResizedCrop(224),
-                                     transforms.RandomHorizontalFlip(),
-                                     transforms.ToTensor(),
-                                     # [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]  [0.5, 0.5, 0.5], [0.5, 0.5, 0.5]
-                                     transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))]),
-        "val": transforms.Compose([transforms.Resize(256),
-                                   transforms.CenterCrop(224),
-                                   transforms.ToTensor(),
-                                   transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+    "train": transforms.Compose([transforms.RandomResizedCrop(224),
+                                 transforms.RandomHorizontalFlip(),
+                                 transforms.ToTensor(),
+                                 # [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]  [0.5, 0.5, 0.5], [0.5, 0.5, 0.5]
+                                 transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))]),
+    "val": transforms.Compose([transforms.Resize(256),
+                               transforms.CenterCrop(224),
+                               transforms.ToTensor(),
+                               transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
 }
 # train config
 EPOCHS = 30
@@ -129,9 +129,9 @@ def main(net, loss_function, optimizer, train_dataset, val_dataset):
 
 
 if __name__ == '__main__':
-    from ShuffleNet.model import ShuffleNetV2 as model
+    from VisionTransformer import vit_base_patch16_224_in21k as create_model
 
-    net, model_save_path, _ = model.initialize_model_for_learning()
+    net, model_save_path, _ = create_model(num_classes=5, has_logits=False)
     net, net_params = load_model_weights(net, model_save_path, mode='unfreeze')  # freeze
 
     main(net, loss_function=nn.CrossEntropyLoss(), optimizer=optim.Adam(net_params, lr=1e-5),

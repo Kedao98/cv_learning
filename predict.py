@@ -1,5 +1,5 @@
-import os
 import json
+import os
 
 import cv2
 import torch
@@ -37,9 +37,9 @@ def predict(image_path):
 
 
 if __name__ == '__main__':
-    from ShuffleNet.model import ShuffleNetV2 as model
+    from VisionTransformer import vit_base_patch16_224_in21k as create_model
 
-    MODEL, WEIGHTS_PATH, CLASS_DICT_PATH = model.initialize_model_for_learning()
+    MODEL, WEIGHTS_PATH, CLASS_DICT_PATH = create_model(num_classes=5, has_logits=False)
 
     # load model
     assert WEIGHTS_PATH, f"file: {WEIGHTS_PATH} does not exist"
